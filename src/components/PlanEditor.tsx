@@ -2669,7 +2669,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                   className="fixed inset-0 z-40"
                   onClick={() => setHousePickerOpen(false)}
                 />
-                <div className="absolute z-50 mt-1 grid max-h-96 w-full grid-cols-2 gap-2 overflow-y-auto rounded border border-neutral-700 bg-[#181a18] p-2 shadow-xl">
+                <div className="relative z-50 mt-1 grid w-full grid-cols-2 gap-2 rounded border border-neutral-700 bg-[#181a18] p-2 shadow-xl">
                   {HOUSE_VARIANTS.map((v) => (
                     <button
                       key={v.value}
@@ -2710,7 +2710,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                   className="fixed inset-0 z-40"
                   onClick={() => setSaunaPickerOpen(false)}
                 />
-                <div className="absolute z-50 mt-1 grid max-h-96 w-full grid-cols-2 gap-2 overflow-y-auto rounded border border-neutral-700 bg-[#181a18] p-2 shadow-xl">
+                <div className="relative z-50 mt-1 grid w-full grid-cols-2 gap-2 rounded border border-neutral-700 bg-[#181a18] p-2 shadow-xl">
                   {SAUNA_VARIANTS.map((v) => (
                     <button
                       key={v.value}
