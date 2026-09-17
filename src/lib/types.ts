@@ -100,8 +100,8 @@ export type PlanSummary = {
   title: string;
 };
 
-// Варианты домиков для селекта "+ Домик" — выбор сразу ставит домик на площадку
-// с названием вида "H3 - Barn". Черновой набор — лишнее потом почистим.
+// Варианты домиков для дропдауна "+ Домик" — клик по картинке сразу ставит
+// домик на площадку с названием вида "H8 - Treehouse".
 export type HouseVariant = {
   value: string;
   label: string;
@@ -111,63 +111,62 @@ export type HouseVariant = {
 
 export const HOUSE_VARIANTS: HouseVariant[] = [
   {
-    value: "assets/house_barn2.png",
-    label: "Барнхаус (двускатная крыша)",
+    value: "assets/house_glass_mirror.png",
+    label: "Барнхаус + палуба + джакузи",
     tag: "Barn",
     size: [15, 15],
   },
   {
-    value: "assets/house_column.png",
-    label: "Домик на высокой колонне",
-    tag: "Column",
-    size: [10, 10],
-  },
-  {
-    value: "assets/house_aframe.png",
-    label: "А-фрейм",
-    tag: "AFrame",
-    size: [12, 12],
-  },
-  {
-    value: "assets/house_glasscube.png",
-    label: "Стеклянный куб",
-    tag: "GlassCube",
+    value: "assets/house_treehouse_round.png",
+    label: "Дом на дереве (круглый, с мостиками)",
+    tag: "Treehouse",
     size: [14, 14],
   },
   {
-    value: "assets/house_dome.png",
-    label: "Купольный дом",
+    value: "assets/house_treehouse_multilevel.png",
+    label: "Дом на дереве (многоуровневый, с бассейном)",
+    tag: "TreehouseXL",
+    size: [18, 16],
+  },
+  {
+    value: "assets/house_dome_glass.png",
+    label: "Стеклянный купол с джакузи",
     tag: "Dome",
-    size: [14, 14],
-  },
-  {
-    value: "assets/house_container.png",
-    label: "Дом-контейнер",
-    tag: "Container",
-    size: [20, 8],
-  },
-  {
-    value: "assets/house_yurt.png",
-    label: "Юрта",
-    tag: "Yurt",
     size: [12, 12],
   },
   {
-    value: "assets/house_log.png",
-    label: "Бревенчатый дом",
-    tag: "Log",
-    size: [14, 14],
+    value: "assets/house_barnhouse_black.png",
+    label: "Барнхаус чёрный (терраса, мангал, зона отдыха)",
+    tag: "BarnBlack",
+    size: [16, 12],
+  },
+];
+
+// Варианты бань для дропдауна "+ Баня" — отдельная категория со своими
+// ключами (S1, S2, ...), не путать с домиками.
+export const SAUNA_VARIANTS: HouseVariant[] = [
+  {
+    value: "assets/sauna_pod.png",
+    label: "Баня-капсула (круглая)",
+    tag: "SaunaPod",
+    size: [5, 5],
   },
   {
-    value: "assets/house_stilts.png",
-    label: "Дом на сваях (у воды)",
-    tag: "Stilts",
-    size: [16, 14],
+    value: "assets/sauna_aframe.png",
+    label: "Баня-шалаш (A-frame)",
+    tag: "SaunaAFrame",
+    size: [5, 5],
   },
   {
-    value: "assets/house_modern.png",
-    label: "Хай-тек куб",
-    tag: "Modern",
-    size: [18, 12],
+    value: "assets/sauna_cube.png",
+    label: "Баня-куб (модерн)",
+    tag: "SaunaCube",
+    size: [5, 4],
+  },
+  {
+    value: "assets/sauna_barrel.png",
+    label: "Баня-бочка",
+    tag: "SaunaBarrel",
+    size: [5, 4],
   },
 ];

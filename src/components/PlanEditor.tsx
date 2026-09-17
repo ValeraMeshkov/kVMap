@@ -17,7 +17,7 @@ import type {
   PondDTO,
   WaterwayDTO,
 } from "@/lib/types";
-import { HOUSE_VARIANTS } from "@/lib/types";
+import { HOUSE_VARIANTS, SAUNA_VARIANTS } from "@/lib/types";
 
 type Props = {
   initial: LayoutDTO;
@@ -35,6 +35,10 @@ type Selection =
 
 function jsonHeaders() {
   return { "Content-Type": "application/json" };
+}
+
+function jitterOffset(range: number) {
+  return (Math.random() - 0.5) * range;
 }
 
 // Админский флаг ставится вручную в localStorage (isAdmin = "true") — без отдельной
@@ -66,6 +70,12 @@ const HOUSE_ASSET_META: Record<string, { label: string; dot: string }> = {
     HOUSE_VARIANTS.map((v) => [
       v.value,
       { label: v.label, dot: "bg-amber-400" },
+    ]),
+  ),
+  ...Object.fromEntries(
+    SAUNA_VARIANTS.map((v) => [
+      v.value,
+      { label: v.label, dot: "bg-orange-300" },
     ]),
   ),
 };
@@ -159,6 +169,8 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
   );
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [showDeletePlanConfirm, setShowDeletePlanConfirm] = useState(false);
+  const [housePickerOpen, setHousePickerOpen] = useState(false);
+  const [saunaPickerOpen, setSaunaPickerOpen] = useState(false);
   const [deletingPlan, setDeletingPlan] = useState(false);
   const isAdmin = useSyncExternalStore(
     subscribeIsAdmin,
@@ -387,7 +399,8 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       e.stopPropagation();
       e.preventDefault();
       setSelection({ kind: "house", id: house.id });
-      if (isLocked(house.planId)) return;
+      if (isLocked(house.planId) || (isPermanentHouse(house) && !isAdmin))
+        return;
       draggingRef.current = true;
       const start = toSvgPoint(e.clientX, e.clientY);
       const startTlX = house.tlX;
@@ -420,7 +433,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [toSvgPoint, patchHouse, isLocked],
+    [toSvgPoint, patchHouse, isLocked, isAdmin],
   );
 
   // --- поворот домика ---
@@ -428,7 +441,8 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     (e: React.PointerEvent, house: HouseDTO) => {
       e.stopPropagation();
       e.preventDefault();
-      if (isLocked(house.planId)) return;
+      if (isLocked(house.planId) || (isPermanentHouse(house) && !isAdmin))
+        return;
       draggingRef.current = true;
       const centerSvg = {
         x: house.tlX + house.sizeW / 2,
@@ -456,7 +470,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [toSvgPoint, worldToSvgY, patchHouse, isLocked],
+    [toSvgPoint, worldToSvgY, patchHouse, isLocked, isAdmin],
   );
 
   // --- перетаскивание реки/ручья целиком (все точки сразу) ---
@@ -465,7 +479,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       e.stopPropagation();
       e.preventDefault();
       setSelection({ kind: "waterway", id: waterway.id });
-      if (isLocked(waterway.planId)) return;
+      if (isLocked(waterway.planId) || !isAdmin) return;
       draggingRef.current = true;
       const original = waterway.points;
       const start = toSvgPoint(e.clientX, e.clientY);
@@ -506,7 +520,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [toSvgPoint, patchWaterway, isLocked],
+    [toSvgPoint, patchWaterway, isLocked, isAdmin],
   );
 
   // --- перетаскивание точки реки/ручья ---
@@ -515,7 +529,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       e.stopPropagation();
       e.preventDefault();
       setSelection({ kind: "waterway", id: waterway.id });
-      if (isLocked(waterway.planId)) return;
+      if (isLocked(waterway.planId) || !isAdmin) return;
       draggingRef.current = true;
       const original = waterway.points;
       const start = toSvgPoint(e.clientX, e.clientY);
@@ -556,7 +570,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [toSvgPoint, patchWaterway, isLocked],
+    [toSvgPoint, patchWaterway, isLocked, isAdmin],
   );
 
   // --- перетаскивание пруда целиком (все точки сразу) ---
@@ -565,7 +579,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       e.stopPropagation();
       e.preventDefault();
       setSelection({ kind: "pond", id: pond.id });
-      if (isLocked(pond.planId)) return;
+      if (isLocked(pond.planId) || !isAdmin) return;
       draggingRef.current = true;
       const original = pond.points;
       const start = toSvgPoint(e.clientX, e.clientY);
@@ -606,7 +620,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [toSvgPoint, patchPond, isLocked],
+    [toSvgPoint, patchPond, isLocked, isAdmin],
   );
 
   // --- перетаскивание одной точки пруда ---
@@ -615,7 +629,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       e.stopPropagation();
       e.preventDefault();
       setSelection({ kind: "pond", id: pond.id });
-      if (isLocked(pond.planId)) return;
+      if (isLocked(pond.planId) || !isAdmin) return;
       draggingRef.current = true;
       const original = pond.points;
       const start = toSvgPoint(e.clientX, e.clientY);
@@ -656,7 +670,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [toSvgPoint, patchPond, isLocked],
+    [toSvgPoint, patchPond, isLocked, isAdmin],
   );
 
   // --- перетаскивание дорожки целиком (все точки сразу) ---
@@ -774,7 +788,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       e.stopPropagation();
       e.preventDefault();
       setSelection({ kind: "flag", id: flagLine.id });
-      if (isLocked(flagLine.planId)) return;
+      if (isLocked(flagLine.planId) || !isAdmin) return;
       draggingRef.current = true;
       const original = flagLine.points;
       const start = toSvgPoint(e.clientX, e.clientY);
@@ -815,7 +829,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [toSvgPoint, patchFlag, isLocked],
+    [toSvgPoint, patchFlag, isLocked, isAdmin],
   );
 
   // --- добавление домика/постройки ---
@@ -826,7 +840,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     keyPrefix?: string,
     tag?: string,
   ) {
-    const jitter = (Math.random() - 0.5) * 6;
+    const jitter = jitterOffset(6);
     const tlX = meta.plotW / 2 - size[0] / 2 + jitter;
     const tlY = meta.plotH / 2 + size[1] / 2 + jitter;
     const res = await fetch("/api/houses", {
@@ -861,6 +875,18 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
       variant.value,
       variant.size,
       undefined,
+      variant.tag,
+    );
+  }
+
+  async function addSaunaVariant(assetValue: string) {
+    const variant = SAUNA_VARIANTS.find((v) => v.value === assetValue);
+    if (!variant) return;
+    await createHouse(
+      variant.tag,
+      variant.value,
+      variant.size,
+      "S",
       variant.tag,
     );
   }
@@ -925,7 +951,8 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     if (selection?.kind !== "waterway") return;
     const id = selection.id;
     const wp = waterways.find((w) => w.id === id);
-    if (!wp || wp.points.length === 0 || isLocked(wp.planId)) return;
+    if (!wp || wp.points.length === 0 || isLocked(wp.planId) || !isAdmin)
+      return;
     const last = wp.points[wp.points.length - 1];
     const prev = wp.points.length > 1 ? wp.points[wp.points.length - 2] : last;
     const dx = last.x - prev.x || 5;
@@ -957,7 +984,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     if (selection?.kind !== "waterway") return;
     const id = selection.id;
     const wp = waterways.find((w) => w.id === id);
-    if (!wp || wp.points.length <= 2 || isLocked(wp.planId)) return;
+    if (!wp || wp.points.length <= 2 || isLocked(wp.planId) || !isAdmin) return;
     const newPoints = wp.points
       .filter((p) => p.id !== pointId)
       .map((p) => ({ x: p.x, y: p.y }));
@@ -1007,7 +1034,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     if (selection?.kind !== "pond") return;
     const id = selection.id;
     const pd = ponds.find((p) => p.id === id);
-    if (!pd || pd.points.length < 2 || isLocked(pd.planId)) return;
+    if (!pd || pd.points.length < 2 || isLocked(pd.planId) || !isAdmin) return;
     const n = pd.points.length;
     let bestIdx = 0;
     let bestLen = -1;
@@ -1054,7 +1081,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     if (selection?.kind !== "pond") return;
     const id = selection.id;
     const pd = ponds.find((p) => p.id === id);
-    if (!pd || pd.points.length <= 3 || isLocked(pd.planId)) return;
+    if (!pd || pd.points.length <= 3 || isLocked(pd.planId) || !isAdmin) return;
     const newPoints = pd.points
       .filter((p) => p.id !== pointId)
       .map((p) => ({ x: p.x, y: p.y }));
@@ -1200,7 +1227,8 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     if (selection?.kind !== "flag") return;
     const id = selection.id;
     const fl = flagLines.find((f) => f.id === id);
-    if (!fl || fl.points.length === 0 || isLocked(fl.planId)) return;
+    if (!fl || fl.points.length === 0 || isLocked(fl.planId) || !isAdmin)
+      return;
     const last = fl.points[fl.points.length - 1];
     const prev = fl.points.length > 1 ? fl.points[fl.points.length - 2] : last;
     const dx = last.x - prev.x || 10;
@@ -1232,7 +1260,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     if (selection?.kind !== "flag") return;
     const id = selection.id;
     const fl = flagLines.find((f) => f.id === id);
-    if (!fl || fl.points.length <= 2 || isLocked(fl.planId)) return;
+    if (!fl || fl.points.length <= 2 || isLocked(fl.planId) || !isAdmin) return;
     const newPoints = fl.points
       .filter((p) => p.id !== pointId)
       .map((p) => ({ x: p.x, y: p.y }));
@@ -1254,6 +1282,13 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
     const id = selection.id;
     const house = houses.find((h) => h.id === id);
     if (house && isLocked(house.planId)) return;
+    if (
+      house &&
+      isPermanentHouse(house) &&
+      !isAdmin &&
+      (field === "tlX" || field === "tlY" || field === "rotationDeg")
+    )
+      return;
     setHouses((hs) =>
       hs.map((h) => (h.id === id ? { ...h, [field]: value } : h)),
     );
@@ -1734,7 +1769,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
             />
           )}
         </g>
-        {isSel && !isLocked(h.planId) && (
+        {isSel && !isLocked(h.planId) && !(isPermanentHouse(h) && !isAdmin) && (
           <>
             <line
               x1={cx}
@@ -2003,6 +2038,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
             (() => {
               const locked = isLocked(selectedHouse.planId);
               const permanent = isPermanentHouse(selectedHouse);
+              const positionLocked = locked || (permanent && !isAdmin);
               return (
                 <section className="mb-4 rounded border border-neutral-800 p-3">
                   <div className="text-xs text-neutral-400 mb-2">
@@ -2057,7 +2093,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                       onChange={(e) =>
                         updateHouseField("rotationDeg", Number(e.target.value))
                       }
-                      disabled={locked}
+                      disabled={positionLocked}
                       className="w-full rounded bg-neutral-800 px-2 py-1 text-xs text-neutral-200 disabled:opacity-40"
                     />
                   </div>
@@ -2072,7 +2108,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                         onChange={(e) =>
                           updateHouseField("tlX", Number(e.target.value))
                         }
-                        disabled={locked}
+                        disabled={positionLocked}
                         className="w-full rounded bg-neutral-800 px-2 py-1 text-xs text-neutral-200 disabled:opacity-40"
                       />
                     </div>
@@ -2086,11 +2122,16 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                         onChange={(e) =>
                           updateHouseField("tlY", Number(e.target.value))
                         }
-                        disabled={locked}
+                        disabled={positionLocked}
                         className="w-full rounded bg-neutral-800 px-2 py-1 text-xs text-neutral-200 disabled:opacity-40"
                       />
                     </div>
                   </div>
+                  {!locked && permanent && !isAdmin && (
+                    <p className="mb-2 text-center text-xs text-neutral-600">
+                      Двигать/вращать этот объект может только админ
+                    </p>
+                  )}
                   {locked ? (
                     <p className="text-center text-xs text-neutral-600">
                       Общий объект — редактируется только на вкладке V1
@@ -2115,6 +2156,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
             (() => {
               const locked = isLocked(selectedWaterway.planId);
               const permanent = selectedWaterway.kind === "river";
+              const moveLocked = locked || !isAdmin;
               return (
                 <section className="mb-4 rounded border border-neutral-800 p-3">
                   <div className="text-xs text-neutral-400 mb-2">
@@ -2163,7 +2205,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                         <button
                           onClick={() => removeWaterwayPoint(p.id)}
                           disabled={
-                            locked || selectedWaterway.points.length <= 2
+                            moveLocked || selectedWaterway.points.length <= 2
                           }
                           className="rounded px-1.5 py-0.5 text-red-300 hover:bg-red-900/60 disabled:opacity-30 disabled:hover:bg-transparent"
                           title="Удалить точку"
@@ -2175,11 +2217,16 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                   </div>
                   <button
                     onClick={addWaterwayPoint}
-                    disabled={locked}
+                    disabled={moveLocked}
                     className="mb-2 w-full rounded bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700 disabled:opacity-40"
                   >
                     + Добавить точку
                   </button>
+                  {!locked && !isAdmin && (
+                    <p className="mb-2 text-center text-xs text-neutral-600">
+                      Двигать/менять точки может только админ
+                    </p>
+                  )}
                   {locked ? (
                     <p className="text-center text-xs text-neutral-600">
                       Общий объект — редактируется только на вкладке V1
@@ -2203,6 +2250,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
           {selectedPond &&
             (() => {
               const locked = isLocked(selectedPond.planId);
+              const moveLocked = locked || !isAdmin;
               return (
                 <section className="mb-4 rounded border border-neutral-800 p-3">
                   <div className="text-xs text-neutral-400 mb-2">
@@ -2235,7 +2283,9 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                         </span>
                         <button
                           onClick={() => removePondPoint(pt.id)}
-                          disabled={locked || selectedPond.points.length <= 3}
+                          disabled={
+                            moveLocked || selectedPond.points.length <= 3
+                          }
                           className="rounded px-1.5 py-0.5 text-red-300 hover:bg-red-900/60 disabled:opacity-30 disabled:hover:bg-transparent"
                           title="Удалить точку"
                         >
@@ -2246,11 +2296,16 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                   </div>
                   <button
                     onClick={addPondPoint}
-                    disabled={locked}
+                    disabled={moveLocked}
                     className="mb-2 w-full rounded bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700 disabled:opacity-40"
                   >
                     + Добавить точку
                   </button>
+                  {!locked && !isAdmin && (
+                    <p className="mb-2 text-center text-xs text-neutral-600">
+                      Двигать/менять точки может только админ
+                    </p>
+                  )}
                   {locked ? (
                     <p className="text-center text-xs text-neutral-600">
                       Общий объект — редактируется только на вкладке V1
@@ -2338,6 +2393,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
           {selectedFlag &&
             (() => {
               const locked = isLocked(selectedFlag.planId);
+              const moveLocked = locked || !isAdmin;
               return (
                 <section className="mb-4 rounded border border-neutral-800 p-3">
                   <div className="text-xs text-neutral-400 mb-2">
@@ -2370,7 +2426,9 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                         </span>
                         <button
                           onClick={() => removeFlagPoint(pt.id)}
-                          disabled={locked || selectedFlag.points.length <= 2}
+                          disabled={
+                            moveLocked || selectedFlag.points.length <= 2
+                          }
                           className="rounded px-1.5 py-0.5 text-red-300 hover:bg-red-900/60 disabled:opacity-30 disabled:hover:bg-transparent"
                           title="Удалить точку"
                         >
@@ -2381,11 +2439,16 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                   </div>
                   <button
                     onClick={addFlagPoint}
-                    disabled={locked}
+                    disabled={moveLocked}
                     className="mb-2 w-full rounded bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700 disabled:opacity-40"
                   >
                     + Добавить точку
                   </button>
+                  {!locked && !isAdmin && (
+                    <p className="mb-2 text-center text-xs text-neutral-600">
+                      Двигать/менять точки может только админ
+                    </p>
+                  )}
                   {locked ? (
                     <p className="text-center text-xs text-neutral-600">
                       Общий объект — редактируется только на вкладке V1
@@ -2594,25 +2657,92 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
             </section>
           )}
 
-          <section className="mb-2">
+          <section className="relative mb-2">
             <label className="block text-xs text-neutral-400 mb-1">
               Добавить домик
             </label>
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value) addHouseVariant(e.target.value);
-                e.target.value = "";
-              }}
-              className="w-full rounded bg-emerald-800 px-2 py-1.5 text-xs text-white"
+            <button
+              onClick={() => setHousePickerOpen((v) => !v)}
+              className="flex w-full items-center justify-between rounded bg-emerald-800 px-2 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
             >
-              <option value="">+ Выберите домик…</option>
-              {HOUSE_VARIANTS.map((v) => (
-                <option key={v.value} value={v.value}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
+              <span>+ Выберите домик…</span>
+              <span className="text-emerald-300">
+                {housePickerOpen ? "▲" : "▼"}
+              </span>
+            </button>
+            {housePickerOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setHousePickerOpen(false)}
+                />
+                <div className="absolute z-50 mt-1 grid max-h-96 w-full grid-cols-2 gap-2 overflow-y-auto rounded border border-neutral-700 bg-[#181a18] p-2 shadow-xl">
+                  {HOUSE_VARIANTS.map((v) => (
+                    <button
+                      key={v.value}
+                      onClick={() => {
+                        addHouseVariant(v.value);
+                        setHousePickerOpen(false);
+                      }}
+                      className="group flex flex-col overflow-hidden rounded border border-neutral-700 bg-neutral-900 text-left hover:border-emerald-500"
+                    >
+                      <img
+                        src={`/${v.value}`}
+                        alt={v.label}
+                        className="h-20 w-full object-cover"
+                      />
+                      <span className="px-1.5 py-1 text-[10px] leading-tight text-neutral-200 group-hover:text-emerald-300">
+                        {v.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+
+          <section className="relative mb-2">
+            <label className="block text-xs text-neutral-400 mb-1">
+              Добавить баню
+            </label>
+            <button
+              onClick={() => setSaunaPickerOpen((v) => !v)}
+              className="flex w-full items-center justify-between rounded bg-orange-800 px-2 py-1.5 text-xs font-medium text-white hover:bg-orange-700"
+            >
+              <span>+ Выберите баню…</span>
+              <span className="text-orange-300">
+                {saunaPickerOpen ? "▲" : "▼"}
+              </span>
+            </button>
+            {saunaPickerOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setSaunaPickerOpen(false)}
+                />
+                <div className="absolute z-50 mt-1 grid max-h-96 w-full grid-cols-2 gap-2 overflow-y-auto rounded border border-neutral-700 bg-[#181a18] p-2 shadow-xl">
+                  {SAUNA_VARIANTS.map((v) => (
+                    <button
+                      key={v.value}
+                      onClick={() => {
+                        addSaunaVariant(v.value);
+                        setSaunaPickerOpen(false);
+                      }}
+                      className="group flex flex-col overflow-hidden rounded border border-neutral-700 bg-neutral-900 text-left hover:border-orange-500"
+                    >
+                      <img
+                        src={`/${v.value}`}
+                        alt={v.label}
+                        className="h-20 w-full object-cover"
+                      />
+                      <span className="px-1.5 py-1 text-[10px] leading-tight text-neutral-200 group-hover:text-orange-300">
+                        {v.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
 
           <section className="mb-4 border-t border-neutral-800 pt-4">
