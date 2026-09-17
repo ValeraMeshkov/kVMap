@@ -1,36 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Редактор плана участка
 
-## Getting Started
+Интерактивная веб-версия плана из `plan_v0`: домики, река/ручей и пруд — реальные
+объекты на SVG-карте, которые можно таскать мышкой и вращать. Все изменения сразу
+пишутся в базу данных (Prisma). Одна кнопка экспортирует текущее состояние обратно
+в `../plan_v0/layout_coords.json`, которым пользуется старый Python-пайплайн
+(`make_field_base.py` → `compose_house.py` → `render_overlay.py`).
 
-First, run the development server:
+## Что уже работает
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Перетаскивание домиков (позиция) и поворот (жёлтый маркер у выделенного домика).
+- Перетаскивание точек реки/ручья — можно менять форму русла.
+- Перетаскивание пруда (центр) и изменение радиуса (маркер на краю круга).
+- Добавление новых домиков через сайдбар (тип из выпадающего списка → сразу
+  появляется на карте, тащите куда нужно).
+- Удаление выбранного домика, редактирование названия и размера.
+- Все изменения сохраняются в БД сразу по отпусканию мышки — ничего вручную
+  сохранять не нужно. Открытые у коллег вкладки подтягивают чужие правки
+  автоматически (опрос раз в 4 сек).
+- Кнопка **«Экспорт в layout_coords.json»** — если сайт запущен локально рядом
+  с папкой `plan_v0` (обычный `npm run dev` на этом же Маке), она пишет файл
+  прямо на диск. Дальше как обычно: `../.venv_img/bin/python render_overlay.py`
+  в `plan_v0`, чтобы перерисовать картинку.
+- Кнопка **«Скопировать JSON»** — копирует в буфер обмена текущее состояние
+  плана (с текстовыми описаниями объектов для AI-генерации визуализаций).
+  Работает всегда, в том числе на задеплоенном сайте.
+- Несколько независимых **планов-вкладок** (V1, V2, ...) — река/пруд/ручьи/
+  граница/админ. здание/большое здание общие и редактируются только на V1,
+  остальное (домики, столбы, дорожки) — своё для каждой вкладки.
+
+## Запуск локально
+
+Нужна база Postgres (см. раздел «Деплой» ниже — тот же Neon подходит и для
+локальной разработки). Положите строку подключения в `.env`:
+
+```
+DATABASE_URL="postgresql://user:pass@host/db?sslmode=require"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+npm install          # заодно сгенерирует Prisma Client (postinstall)
+npm run db:migrate    # один раз — создаёт таблицы в базе
+npm run db:seed        # заполняет базу текущим содержимым plan_v0/layout_coords.json
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Открыть http://localhost:3000.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`npm run db:seed` можно запускать повторно в любой момент — он полностью
+перезаписывает базу содержимым `plan_v0/layout_coords.json` (удобно, если хотите
+сбросить правки и начать с текущего файла заново).
 
-## Learn More
+## Как посмотреть/поменять данные руками
 
-To learn more about Next.js, take a look at the following resources:
+`npm run db:studio` открывает Prisma Studio (визуальный редактор таблиц в
+браузере) — можно посмотреть и поправить любые записи напрямую, без интерфейса
+карты.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Деплой (общий сайт, не только локально)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Проект уже переключён на Postgres (через `@prisma/adapter-pg`) — так что
+**GitHub Pages не подходит**: это чисто статический хостинг, он не умеет
+запускать сервер (API-роуты) и тем более базу данных. Нужен хостинг с
+Node-рантаймом (Render, Vercel, Railway...) + отдельная база Postgres.
 
-## Deploy on Vercel
+1. **База — [Neon](https://neon.tech).** Бесплатный тариф без ограничения по
+   времени, отлично работает с Prisma. Зарегистрироваться можно через GitHub в
+   один клик → создать проект → скопировать `DATABASE_URL` (вида
+   `postgresql://user:pass@host/db?sslmode=require`).
+   (Альтернатива — [Supabase](https://supabase.com); у Render свой Postgres
+   тоже есть, но бесплатный тариф там истекает через 30 дней и база удаляется —
+   для «просто чтобы работало» Neon удобнее.)
+2. **Хостинг — Render** (Web Service, Node):
+   - New → Web Service → подключить репозиторий `kVMap`.
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm run start`
+   - Environment → добавить переменную `DATABASE_URL` со строкой из Neon.
+3. Один раз прогнать миграции и сид на новую базу (с любого компьютера, где
+   есть `DATABASE_URL` от Neon):
+   ```bash
+   DATABASE_URL="..." npx prisma migrate deploy
+   DATABASE_URL="..." npx prisma db seed
+   ```
+4. На деплое кнопка «Скопировать JSON» работает всегда (буфер обмена); а
+   автоэкспорт в `layout_coords.json` на диск — только когда сайт запущен
+   локально рядом с папкой `plan_v0` (на Render такого файла нет, и это ожидаемо
+   — он просто не пишется).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Структура
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `prisma/schema.prisma` — модели: `Plan`, `Meta`, `House`, `Waterway` +
+  `WaterwayPoint`, `Pond` + `PondPoint`, `Path` + `PathPoint`, `FlagLine` +
+  `FlagPoint`.
+- `prisma/seed.ts` — импорт из `plan_v0/layout_coords.json`.
+- `src/app/api/*` — REST-эндпоинты для чтения/правки (`/api/layout`,
+  `/api/houses`, `/api/waterways/[id]`, `/api/ponds/[id]`, `/api/export`).
+- `src/components/PlanEditor.tsx` — вся логика карты и перетаскивания (SVG,
+  без внешних библиотек для drag&drop).
+- `public/field_base.png`, `public/assets/*` — фон и картинки домиков,
+  скопированы из `plan_v0`.
+
+## Известные ограничения (можно доделать по запросу)
+
+- Поворот домиков (`rotation_deg`) пока не учитывается в Python-рендере
+  (`compose_house.py`) — на карте сайта домик крутится, а в финальной картинке
+  из `plan_v0` пока всегда рисуется без поворота. Могу добавить поддержку
+  поворота и туда.
+- Добавление/удаление точек реки (не только перетаскивание существующих) пока
+  не реализовано в интерфейсе.
+- Нет авторизации — у кого есть ссылка на задеплоенный сайт, тот может менять
+  всё. Если нужно ограничить доступ команде — добавлю простой пароль или логины.

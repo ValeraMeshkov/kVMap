@@ -1,0 +1,143 @@
+// Схема плана участка: домики, реки/ручьи (полилинии), пруды.
+// Единицы измерения — метры, система координат как в layout_coords.json (Y вверх).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Meta {
+  id       Int    @id @default(1)
+  title    String @default("План v0 — зеркальные боксы")
+  plotW    Float  @default(220)
+  plotH    Float  @default(160)
+  pxPerM   Float  @default(6.981818181818182)
+}
+
+// Вкладка плана (V1, V2, ...) — независимый набор объектов на одном и том же участке.
+model Plan {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  title     String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model House {
+  id            String   @id @default(cuid())
+  planId        String
+  key           String
+  label         String
+  kind          String   @default("house")
+  asset         String
+  tlX           Float
+  tlY           Float
+  sizeW         Float
+  sizeH         Float
+  rotationDeg   Float    @default(0)
+  renderScale   Float    @default(1)
+  renderOffsetX Float    @default(0)
+  renderOffsetY Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([planId, key])
+  @@index([planId])
+}
+
+model Waterway {
+  id     String          @id @default(cuid())
+  planId String
+  key    String
+  kind   String // "river" | "stream"
+  label  String
+  widthM Float
+  points WaterwayPoint[]
+
+  @@unique([planId, key])
+  @@index([planId])
+}
+
+model WaterwayPoint {
+  id         String   @id @default(cuid())
+  waterwayId String
+  waterway   Waterway @relation(fields: [waterwayId], references: [id], onDelete: Cascade)
+  orderIndex Int
+  x          Float
+  y          Float
+
+  @@index([waterwayId])
+}
+
+model Pond {
+  id     String      @id @default(cuid())
+  planId String
+  key    String
+  label  String
+  points PondPoint[]
+
+  @@unique([planId, key])
+  @@index([planId])
+}
+
+model PondPoint {
+  id         String   @id @default(cuid())
+  pondId     String
+  pond       Pond     @relation(fields: [pondId], references: [id], onDelete: Cascade)
+  orderIndex Int
+  x          Float
+  y          Float
+
+  @@index([pondId])
+}
+
+// Дорожка/дорога — полилиния как у реки/ручья. kind: "footpath" (пешеходная, с фонарями) | "road" (для машин, щебень).
+model Path {
+  id     String      @id @default(cuid())
+  planId String
+  key    String
+  kind   String      @default("footpath")
+  label  String
+  widthM Float       @default(1.5)
+  points PathPoint[]
+
+  @@unique([planId, key])
+  @@index([planId])
+}
+
+model PathPoint {
+  id         String   @id @default(cuid())
+  pathId     String
+  path       Path     @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  orderIndex Int
+  x          Float
+  y          Float
+
+  @@index([pathId])
+}
+
+// Линия флажков — граница территории, полилиния как у реки/ручья.
+model FlagLine {
+  id     String      @id @default(cuid())
+  planId String
+  key    String
+  label  String
+  points FlagPoint[]
+
+  @@unique([planId, key])
+  @@index([planId])
+}
+
+model FlagPoint {
+  id         String   @id @default(cuid())
+  flagLineId String
+  flagLine   FlagLine @relation(fields: [flagLineId], references: [id], onDelete: Cascade)
+  orderIndex Int
+  x          Float
+  y          Float
+
+  @@index([flagLineId])
+}

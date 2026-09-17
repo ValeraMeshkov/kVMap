@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# prisma sqlite (локальная БД для разработки — на проде используется Postgres)
+/dev.db
+/dev.db-journal
+/dev.db.bak*
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# локальные конфиги инструментов/IDE — не часть приложения
+/.claude
+/.agents
+/.windsurf
