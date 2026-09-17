@@ -2476,7 +2476,7 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                   flagLines.length}
               </span>
             </h2>
-            <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+            <div className="max-h-52 space-y-3 overflow-y-auto pr-1">
               {houses.length > 0 && (
                 <div className="space-y-1">
                   <div className="text-[10px] uppercase tracking-wide text-neutral-600">
@@ -2598,13 +2598,9 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
             </div>
           </section>
 
-          <h1 className="text-sm font-semibold text-neutral-100 mb-1">
+          <h1 className="text-sm font-semibold text-neutral-100 mb-3">
             Редактор плана
           </h1>
-          <p className="text-xs text-neutral-500 mb-3">
-            Тащите домики, точки реки/ручья и пруд прямо на карте. Жёлтый кружок
-            у выделенного домика — поворот.
-          </p>
 
           <section className="mb-2 grid grid-cols-2 gap-2">
             <button
@@ -2658,9 +2654,6 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
           )}
 
           <section className="relative mb-2">
-            <label className="block text-xs text-neutral-400 mb-1">
-              Добавить домик
-            </label>
             <button
               onClick={() => setHousePickerOpen((v) => !v)}
               className="flex w-full items-center justify-between rounded bg-emerald-800 px-2 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
@@ -2702,9 +2695,6 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
           </section>
 
           <section className="relative mb-2">
-            <label className="block text-xs text-neutral-400 mb-1">
-              Добавить баню
-            </label>
             <button
               onClick={() => setSaunaPickerOpen((v) => !v)}
               className="flex w-full items-center justify-between rounded bg-orange-800 px-2 py-1.5 text-xs font-medium text-white hover:bg-orange-700"
@@ -2746,9 +2736,6 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
           </section>
 
           <section className="mb-4 border-t border-neutral-800 pt-4">
-            <p className="text-xs text-neutral-500 mb-2">
-              Изменения автоматически экспортируются в layout_coords.json.
-            </p>
             <button
               onClick={copyJson}
               className="w-full rounded bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
@@ -2759,12 +2746,6 @@ export default function PlanEditor({ initial, plans, activePlan }: Props) {
                   ? "Не удалось скопировать"
                   : "Скопировать JSON"}
             </button>
-          </section>
-
-          <section className="text-xs text-neutral-600">
-            Домиков: {houses.length} · Рек/ручьёв: {waterways.length} · Прудов:{" "}
-            {ponds.length} · Дорожек: {paths.length} · Линий флажков:{" "}
-            {flagLines.length}
           </section>
 
           {activePlan.key !== "V1" && (
